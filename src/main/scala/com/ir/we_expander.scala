@@ -8,8 +8,11 @@ object we_expander {
   def main(args : Array[String]) {
     import scala.io.Source
     println( "Hello group member!" )
-    val wordEmbeddings = "/home/neele/Dokumente/InformationRetrieval/glove.6B/glove.6B.50d.txt"
-    val map = Source.fromFile(wordEmbeddings).getLines().map(el => (el.split(" ")(0), el.split(" ").tail.map(_.toFloat))).toMap
+    val wordEmbeddings = args(0)
+    val map = Source.fromFile(wordEmbeddings).getLines()
+                                              .map(el => (el.split(" ")(0), el.split(" ")
+                                              .tail
+                                              .map(_.toFloat))).toMap
     println("done")
   }
 
