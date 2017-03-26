@@ -1,4 +1,5 @@
 package com.ir
+import scala.io.Source
 
 import scala.collection.mutable
 import scala.io.Source
@@ -11,19 +12,12 @@ object we_expander {
   def main(args : Array[String]) {
     println( "Hello group member!" )
 
-
-
-    val embeddings = mutable.HashMap[String, Array[Float]]()
-
-    val  lines = Source.fromFile(args(0)).getLines()
-
-    for (line <- lines) {
-      val elements = line.split(" ")
-      val word = elements(0)
-      val embedding = elements.tail.map(_.toFloat)
-
-      embeddings.put(word, embedding)
-    }
+    val wordEmbeddings = args(0)
+    val map = Source.fromFile(wordEmbeddings).getLines()
+                                              .map(el => (el.split(" ")(0), el.split(" ")
+                                              .tail
+                                              .map(_.toFloat))).toMap
+    println("done")
   }
 
 }
