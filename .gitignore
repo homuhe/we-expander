@@ -1,7 +1,6 @@
 # use glob syntax.
 syntax: glob
 *.ser
-*.class
 *~
 *.bak
 #*.off
@@ -38,7 +37,6 @@ build.log
 #  ^\.pc/
 
 #SHITTY output not in target directory
-build.log
 /embeddings50D.txt
 /glove.6B.zip
 
@@ -49,3 +47,4 @@ glove\.6B/glove\.6B\.200d\.txt
 glove\.6B/glove\.6B\.300d\.txt
 
 glove\.6B/glove\.6B\.50d\.txt
+/glove.6B.50d.txt
