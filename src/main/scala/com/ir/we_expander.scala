@@ -33,20 +33,30 @@ object we_expander {
     embeddings.map(pair => (pair._1, cosine_similarity(vector, pair._2))).toArray.sortBy(_._2).reverse.take(5)
   }
 
-  def get_candidates(input: String): Array[(String, Float)] = {
-    var candidates = Array[(String, Float)]()
-    input.split(" ").foreach{word => candidates :+= kNN(embeddings(word))}
-    candidates
+  def get_candidates(input: String): Array[String] = {
+    var candidates = Array[Array[String]]()
+    input.split(" ").foreach{word =>
+      val can = kNN(embeddings(word)).map(_._1)
+      candidates:+= can
+    }
+    candidates.flatten
   }
-
+  def rank(query: String) : Array[String] = {
+    val candidates = get_candidates(query)
+    var similarities = Array[Array[(String, Float)]]()
+    candidates.foreach{candidate =>
+      val wordvec = embeddings(candidate)
+      similarities:+=query.split(" ").map(word => (word,cosine_similarity(wordvec, embeddings(word))))
+    }
+    similarities.flatten.sortBy(_._2).reverse.take(3).map(_._1)
+  }
   def main(args : Array[String]) {
     println( "Hello group member!" )
 
     val input = args(0)
     embeddings = read_embeddings(input)
     println("done with reading in.")
-    val testvector = embeddings("tree")
-    val x = get_candidates("tree city")
+    val x = rank("tree city")
     println("done")
   }
 
