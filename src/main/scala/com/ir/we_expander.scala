@@ -1,5 +1,7 @@
 package com.ir
+import scala.collection.mutable
 import scala.io.Source
+import java.util.regex.Pattern
 
 /**
   * Created by neele, holger on 26.03.17.
@@ -7,27 +9,24 @@ import scala.io.Source
 object we_expander {
   //------------------------------------reading and loading the corpus, the embeddings, the inverted index------------------------
   var embeddings = Map[String, Array[Float]]()
-  var index = scala.collection.mutable.Map[String, Set[Int]]()
+  var index = mutable.HashMap[String, Set[Int]]()
+  val k = 5
 
   /**
     * reads in a file in conll format, which contains the word in the first row, the docID in the 6th row
     * all delimiters are removed, all words are lowercased
     *
     * @param file
-    * @param format should be conll format
     * @return Iterator that contains Tuples with the word and the docID
     */
-  def preprocessing(file: String, format: String): Iterator[(String, String)] = {
-    import java.util.regex.Pattern
+  def preprocessing(file: String): Iterator[(String, String)] = {
     val delimiter = "[ \t\n\r,.?!\\-:;()\\[\\]'\"/*#&$]+"
 
     var words = Iterator[(String, String)]()
 
-    if (format == "conll") {
-      words = Source.fromFile(file).getLines()
-        .filter(!_.isEmpty)
-        .map(line => (line.split("\t")(1).toLowerCase(), line.split("\t")(6).toLowerCase()))
-    }
+    words = Source.fromFile(file).getLines()
+      .filter(!_.isEmpty)
+      .map(line => (line.split("\t")(1).toLowerCase(), line.split("\t")(6).toLowerCase()))
     val spacePattern = Pattern.compile(delimiter)
     words filter { case (word, docid) => !spacePattern.matcher(word).find() }
   }
@@ -105,7 +104,7 @@ object we_expander {
     * @return k nearest neighbours as tuple of word and similarity weight
     */
   def kNN(vector: Array[Float]): Array[(String, Float)] = {
-    embeddings.map(pair => (pair._1, cosine_similarity(vector, pair._2))).toArray.sortBy(_._2).reverse.take(5)
+    embeddings.map(pair => (pair._1, cosine_similarity(vector, pair._2))).toArray.sortWith(_._2 > _._2).take(k)
   }
 
   //if the query is complete use this method to extract candidates---
@@ -164,7 +163,7 @@ object we_expander {
     * @return
     */
   def getRelevantDocuments(query: String): Set[Int] = {
-    query.split(" ").map(word => index(word)).flatten.toSet
+    query.split(" ").flatMap(word => index(word)).toSet
   }
 
   /**
@@ -175,20 +174,20 @@ object we_expander {
     * @return
     */
   def getRelevantCandidates(documents: Set[Int]): Array[String] = {
-    val retained = index filter { case (key, value) => !documents.intersect(value).isEmpty }
+    val retained = index filter { case (key, value) => documents.intersect(value).nonEmpty }
     retained.keys.toArray
   }
 
 
   //---------------------------------------------load and run the program-----------------------------
   def main(args: Array[String]) {
-    def loadData = {
-      createInvertedIndex(preprocessing(args(0), "conll"))
+    def loadData() = {
+      createInvertedIndex(preprocessing(args(0)))
       println("inverted index has been created")
       read_embeddings(args(1))
       println("embeddings have been read")
     }
-    loadData
+    loadData()
     while (true) {
       print("query-expander: ")
 
