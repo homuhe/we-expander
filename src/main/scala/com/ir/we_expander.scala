@@ -110,14 +110,18 @@ object we_expander {
     */
   def getCandidatesBykNN(input: Array[String]): Array[(String, Float)] = {
     val query_as_vector = input.map(word => (word, embeddings(word)))
-    var similarities = Array[(String, Float)]()
-    for ((queryword, queryvec)<- query_as_vector){
-      println(queryword)
-     for ((embedding, vec) <-embeddings){
-       similarities:+= (embedding, cosine_similarity(queryvec, vec))
-     }
+    var similarities = scala.collection.mutable.ArrayBuffer[(String, Float)]()
+    //val embeddingIterator = embeddings.iterator
+    //while (embeddingIterator.hasNext){
+      //val (embedding, vec) = embeddingIterator.next()
+    for ((embedding, vec) <- embeddings) {
+      for ((queryword, queryvec) <- query_as_vector){
+        similarities.append((embedding, cosine_similarity(queryvec, vec)))
+          //similarities :+= (embedding, cosine_similarity(queryvec, vec))
+      }
     }
-    similarities.sortWith(_._2>_._2).take(k)
+    //similarities.sortWith(_._2>_._2).take(k)
+    similarities.toArray
     }
 
 
