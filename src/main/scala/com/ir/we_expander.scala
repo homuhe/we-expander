@@ -182,13 +182,9 @@ object we_expander {
   }*/
   //---------------------------------------------load and run the program-----------------------------
   def main(args: Array[String]) {
-    embeddings = read_embeddings(args(1))
-    println("Done with embeddings!")
-    val x = getCandidatesBykNN("computer maus".split(" "))
-    x
-    println()
+
     //createInvertedIndex(preprocessing(args(0)))
-    /*
+
     embeddings = read_embeddings(args(1))
     while (true) {
       println("please write query")
@@ -209,6 +205,6 @@ object we_expander {
       val x = rank(query_words, candidates)
       x.foreach{case (word, value) => println(word, value)}
       x
-    }*/
+    }
   }
 }
