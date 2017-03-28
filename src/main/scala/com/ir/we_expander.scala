@@ -6,66 +6,8 @@ import java.util.regex.Pattern
 /**
   * Created by neele, holger on 26.03.17.
   */
-object we_expander {
-  //------------------------------------reading and loading the corpus, the embeddings, the inverted index------------------------
-  var embeddings = Map[String, Array[Float]]()
-  var index = mutable.HashMap[String, Set[Int]]()
-  val k = 5
 
-  /**
-    * reads in a file in conll format, which contains the word in the first row, the docID in the 6th row
-    * all delimiters are removed, all words are lowercased
-    *
-    * @param file
-    * @return Iterator that contains Tuples with the word and the docID
-    */
-  def preprocessing(file: String): Iterator[(String, String)] = {
-    val delimiter = "[ \t\n\r,.?!\\-:;()\\[\\]'\"/*#&$]+"
-
-    var words = Iterator[(String, String)]()
-
-    words = Source.fromFile(file).getLines()
-      .filter(!_.isEmpty)
-      .map(line => (line.split("\t")(1).toLowerCase(), line.split("\t")(6).toLowerCase()))
-    val spacePattern = Pattern.compile(delimiter)
-    words filter { case (word, docid) => !spacePattern.matcher(word).find() }
-  }
-
-  /**
-    * reads a file that contains word embeddings
-    *
-    * @param input should be a file that has the word in the first row and the vector in all the other collums
-    *              separated by whitespace
-    * @return
-    */
-  def read_embeddings(input: String): Map[String, Array[Float]] = {
-     Source.fromFile(input).getLines()
-      .map(el => (el.split(" ")(0).toLowerCase(), el.split(" ")
-        .tail
-        .map(_.toFloat))).toMap
-  }
-
-  /**
-    * creates an Inverted Index with the help of a file iterator,
-    * index contains each word of the corpus as a key, and all documents as value
-    *
-    * @param file
-    */
-  def createInvertedIndex(file: Iterator[(String, String)]): Unit = {
-    while(file.hasNext) {
-      file.next() match {
-        case (word, docId) =>
-          val docidasint = Integer.parseInt(docId)
-          if (index.contains(word)) {
-            val newvalue = index(word) + docidasint
-            index.update(word, newvalue)
-          }
-          else {
-            index.put(word, Set(docidasint))
-          }
-      }
-    }
-  }
+trait vectorFunctions{
 
   //-------------------------------vector calculation methods-------------------------------------------------
   /**
@@ -97,6 +39,28 @@ object we_expander {
   def cosine_similarity(vec1: Array[Float], vec2: Array[Float]): Float = {
     dotproduct(vec1, vec2) / (L2Norm(vec1) * L2Norm(vec2))
   }
+}
+object we_expander extends vectorFunctions{
+  //------------------------------------reading and loading the corpus, the embeddings, the inverted index------------------------
+  var embeddings = Map[String, Array[Float]]()
+  val k = 20
+
+  /**
+    * reads a file that contains word embeddings
+    *
+    * @param input should be a file that has the word in the first row and the vector in all the other collums
+    *              separated by whitespace
+    * @return
+    */
+  def read_embeddings(input: String): Map[String, Array[Float]] = {
+     Source.fromFile(input).getLines()
+      .map(el => (el.split(" ")(0).toLowerCase(), el.split(" ")
+        .tail
+        .map(_.toFloat))).toMap
+  }
+
+
+
 
   //-----------------------------------pre-retrieval knn based approach-------------------------------------------
 
@@ -154,47 +118,15 @@ object we_expander {
       val sim = query.map(word => cosine_similarity(embeddings(word), canditatevec)).sum
       similarities:+= (candidate, (1/q)*sim)
     }
-    similarities.sortWith(_._2>_._2).take(5)
+    similarities.sortWith(_._2>_._2).take(k)
   }
 
-  //---------------------------post retrieval knn approach----------------------------------------
-  /** extracts all documents that contain any of the query words
-    *
-    * @param query
-    * @return
-    */
-  def getRelevantDocuments(query: String): Set[Int] = {
-    query.split(" ").flatMap(word => index(word)).toSet
-  }
-
-  /**
-    * extracts all words, that are contained in the given list of documents
-    * all words returned occur together with at least one query word in the document
-    *
-    * @param documents
-    * @return
-    */
-  def getRelevantCandidates(documents: Set[Int]): Array[String] = {
-    val retained = index filter { case (key, value) => documents.intersect(value).nonEmpty }
-    retained.keys.toArray
-  }
-/*
-  def postRetrieval(query:String):Array[(String, Float)] = {
-    val candidates = getRelevantCandidates(getRelevantDocuments(query))
-    println(candidates.length)
-    rank(query, candidates)
-  }*/
   //---------------------------------------------load and run the program-----------------------------
   def main(args: Array[String]) {
 
     //createInvertedIndex(preprocessing(args(0)))
 
     embeddings = read_embeddings(args(0))
-    println("reading done")
-    val input = "computer maus".split(" ")
-    val x = getCandidatesBykNN(input)
-    println("done")
-    /*
     while (true) {
       println("please write query")
       val input = scala.io.StdIn.readLine().toLowerCase()
@@ -214,6 +146,6 @@ object we_expander {
       val x = rank(query_words, candidates)
       x.foreach{case (word, value) => println(word, value)}
       x
-    }*/
+    }
   }
 }
