@@ -38,7 +38,6 @@ build.log
 #  ^\.pc/
 
 #SHITTY output not in target directory
-build.log
 /embeddings50D.txt
 /glove.6B.zip
 
@@ -49,3 +48,7 @@ glove\.6B/glove\.6B\.200d\.txt
 glove\.6B/glove\.6B\.300d\.txt
 
 glove\.6B/glove\.6B\.50d\.txt
+/glove.6B.50d.txt
+/tubadw-r1-ir-sample-100000
+/wikipedia-300-mincount-50-window-8-cbow.txt
+/wikipedia-300-mincount-50-window-8-cbow.txt.gz
