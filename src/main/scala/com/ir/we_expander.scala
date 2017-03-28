@@ -45,15 +45,15 @@ object we_expander {
   }
 
   def nearest_candidates(candidates: Array[(String, Float)]) = {
-    var pairs: Array[(((String, Float), (String, Float)), Float)] = Array[(((String, Float), (String, Float)), Float)]()
+    var pairs = Array[((String, String), Float)]()
 
     for (candidate_x <- candidates) {
       for (candidate_y <- candidates) {
-        pairs +:= ((candidate_x, candidate_y), cosine_similarity(embeddings(candidate_x._1), embeddings(candidate_y._1)))
+        pairs +:= ((candidate_x._1, candidate_y._1),
+          cosine_similarity(embeddings(candidate_x._1), embeddings(candidate_y._1)))
       }
-
     }
-    pairs.filter(x => x._2 < 0.9).sortBy(x => x._2 > x._2).take(10)
+    pairs
   }
 
 
@@ -75,7 +75,8 @@ object we_expander {
     println("\nCandidates for <" + user_input + ">:")
     println(candidates.foreach(candidate => println(candidate._1, candidate._2)))
 
-    val x = nearest_candidates(candidates)
+    val x = nearest_candidates(candidates).filter(x => x._2 < 0.9).sortBy(x => x._2).reverse
+    //.sortBy(x => x._2 > x._2).take(10)
     println(x)//set breakpoint here
   }
 
