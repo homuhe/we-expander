@@ -109,13 +109,14 @@ object we_expander {
     * @return
     */
   def getCandidatesBykNN(input: Array[String]): Array[(String, Float)] = {
-    var candidates = Array[Array[String]]()
     val query_as_vector = input.map(word => (word, embeddings(word)))
     var similarities = Array[(String, Float)]()
-    for ((word, wordvector)<- embeddings){
-       query_as_vector map {case (queryword, queryvec) => similarities:+=(word,
-        cosine_similarity(queryvec, wordvector))}
-      }
+    for ((queryword, queryvec)<- query_as_vector){
+      println(queryword)
+     for ((embedding, vec) <-embeddings){
+       similarities:+= (embedding, cosine_similarity(queryvec, vec))
+     }
+    }
     similarities.sortWith(_._2>_._2).take(k)
     }
 
@@ -186,6 +187,11 @@ object we_expander {
     //createInvertedIndex(preprocessing(args(0)))
 
     embeddings = read_embeddings(args(1))
+    println("reading done")
+    val input = "computer maus".split(" ")
+    val x = getCandidatesBykNN(input)
+    println("done")
+    /*
     while (true) {
       println("please write query")
       val input = scala.io.StdIn.readLine().toLowerCase()
@@ -193,7 +199,7 @@ object we_expander {
       var candidates = Array[String]()
       //query = complete
       if (embeddings.contains(query_words.last)) {
-        candidates = getCandidatesBykNN(query_words)
+        candidates = getCandidatesBykNN(query_words).map(_._1)
 
       }
       //query = incomplete
@@ -205,6 +211,6 @@ object we_expander {
       val x = rank(query_words, candidates)
       x.foreach{case (word, value) => println(word, value)}
       x
-    }
+    }*/
   }
 }
