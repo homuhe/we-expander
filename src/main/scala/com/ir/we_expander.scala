@@ -28,6 +28,7 @@ object we_expander {
       .filter(!_.isEmpty)
       .map(line => (line.split("\t")(1).toLowerCase(), line.split("\t")(6).toLowerCase()))
     val spacePattern = Pattern.compile(delimiter)
+    println("Done with preprocessing!")
     words filter { case (word, docid) => !spacePattern.matcher(word).find() }
   }
 
@@ -43,6 +44,7 @@ object we_expander {
       .map(el => (el.split(" ")(0).toLowerCase(), el.split(" ")
         .tail
         .map(_.toFloat))).toMap
+    println("Done with reading in embeddings!")
     embeddings
   }
 
@@ -63,6 +65,7 @@ object we_expander {
         index.put(word, Set(Integer.parseInt(docId)))
       }
     }
+    println("Done with creating inverted indices!")
   }
 
   //-------------------------------vector calculation methods-------------------------------------------------
