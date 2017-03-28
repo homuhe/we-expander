@@ -110,19 +110,17 @@ object we_expander {
     */
   def getCandidatesBykNN(input: Array[String]): Array[(String, Float)] = {
     val query_as_vector = input.map(word => (word, embeddings(word)))
-    //var similarities = scala.collection.mutable.ArrayBuffer[(String, Float)]()
+
     val similarites = Array.ofDim[Array[(String, Float)]](embeddings.size)
     var i = 0
-    //val embeddingIterator = embeddings.iterator
-    //while (embeddingIterator.hasNext){
-      //val (embedding, vec) = embeddingIterator.next()
+
     for ((embedding, vec) <- embeddings) {
-      val sims = query_as_vector map {case (queryword, queryvec)=>(embedding, cosine_similarity(vec, queryvec))}
-      similarites(i) = sims
+      similarites(i) = query_as_vector.map({case
+                      (queryword, queryvec) => (embedding, cosine_similarity(vec, queryvec))})
       i+=1
     }
     //similarities.sortWith(_._2>_._2).take(k)
-    similarites.flatten
+    similarites.flatten.sortWith(_._2 > _._2).take(k)
     }
 
 
@@ -191,7 +189,7 @@ object we_expander {
 
     //createInvertedIndex(preprocessing(args(0)))
 
-    embeddings = read_embeddings(args(1))
+    embeddings = read_embeddings(args(0))
     println("reading done")
     val input = "computer maus".split(" ")
     val x = getCandidatesBykNN(input)
