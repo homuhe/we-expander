@@ -1,7 +1,6 @@
 # use glob syntax.
 syntax: glob
 *.ser
-*.class
 *~
 *.bak
 #*.off
