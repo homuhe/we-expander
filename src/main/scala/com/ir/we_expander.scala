@@ -40,7 +40,7 @@ object we_expander {
     * @return
     */
   def read_embeddings(input: String): Map[String, Array[Float]] = {
-    embeddings = Source.fromFile(input).getLines()
+     Source.fromFile(input).getLines()
       .map(el => (el.split(" ")(0).toLowerCase(), el.split(" ")
         .tail
         .map(_.toFloat))).toMap
@@ -103,15 +103,7 @@ object we_expander {
   }
 
   //-----------------------------------pre-retrieval knn based approach-------------------------------------------
-  /**
-    * returns the k nearest neighbours of a vector and it's word meanings
-    *
-    * @param vector
-    * @return k nearest neighbours as tuple of word and similarity weight
-    */
-  def kNN(vector: Array[Float]): Array[(String, Float)] = {
-    embeddings.map(pair => (pair._1, cosine_similarity(vector, pair._2))).toArray.sortWith(_._2 > _._2).take(k)
-  }
+
 
   //if the query is complete use this method to extract candidates---
   /**
@@ -120,14 +112,17 @@ object we_expander {
     * @param input
     * @return
     */
-  def getCandidatesBykNN(input: String): Array[String] = {
+  def getCandidatesBykNN(input: Array[String]): Array[(String, Float)] = {
     var candidates = Array[Array[String]]()
-    input.split(" ").foreach { word =>
-      val can = kNN(embeddings(word)).map(_._1)
-      candidates :+= can.filter(_ != word)
+    val query_as_vector = input.map(word => (word, embeddings(word)))
+    var similarities = Array[(String, Float)]()
+    for ((word, wordvector)<- embeddings){
+       query_as_vector map {case (queryword, queryvec) => similarities:+=(word,
+        cosine_similarity(queryvec, wordvector))}
+      }
+    similarities.sortWith(_._2>_._2).take(k)
     }
-    candidates.flatten
-  }
+
 
   //if the query is incomplete use this method to extract candidates
   /**
@@ -147,19 +142,19 @@ object we_expander {
     * @param candidates
     * @return the best k expansions for that query
     */
-  def rank(query: String, candidates: Array[String]): Array[String] = {
+  def rank(query: Array[String], candidates: Array[String]): Array[(String, Float)] = {
     //durch die kandidaten iterieren, für jeden kandidaten errechnen wir similarity zwischen ihm und jedem wort
     //aus dem query.
     // danach summieren wir diese ähnlichkeiten auf. und normalisieren (rechen mal 1/ wortanzahl im query
     // val q = query length,
     var similarities = Array[(String, Float)]()
-    val q = query.split(" ").length
+    val q = query.length.toFloat
     for (candidate <- candidates){
       val canditatevec = embeddings(candidate)
-      val sim = query.split(" ").map(word => cosine_similarity(embeddings(word), canditatevec)).sum
+      val sim = query.map(word => cosine_similarity(embeddings(word), canditatevec)).sum
       similarities:+= (candidate, (1/q)*sim)
     }
-
+    similarities.sortWith(_._2>_._2).take(5)
   }
 
   //---------------------------post retrieval knn approach----------------------------------------
@@ -183,43 +178,41 @@ object we_expander {
     val retained = index filter { case (key, value) => documents.intersect(value).nonEmpty }
     retained.keys.toArray
   }
-
-  def postRetrieval(query:String):Array[String] = {
+/*
+  def postRetrieval(query:String):Array[(String, Float)] = {
     val candidates = getRelevantCandidates(getRelevantDocuments(query))
     println(candidates.length)
     rank(query, candidates)
-  }
+  }*/
   //---------------------------------------------load and run the program-----------------------------
   def main(args: Array[String]) {
-    createInvertedIndex(preprocessing(args(0)))
-    println("inverted index has been created")
-    read_embeddings(args(1))
-    println("embeddings have been read")
+    embeddings = read_embeddings(args(1))
+    println("Done with embeddings!")
+    val x = getCandidatesBykNN("computer maus".split(" "))
+    x
+    println()
+    //createInvertedIndex(preprocessing(args(0)))
+    /*
+    embeddings = read_embeddings(args(1))
     while (true) {
-      print("query-expander: ")
+      println("please write query")
       val input = scala.io.StdIn.readLine().toLowerCase()
-      println("is your query complete?")
-      val complete = scala.io.StdIn.readLine()
-      if(complete == "complete"){
-        println("which ansatz do you want to have? pre retrieval or else")
-        val ansatz = scala.io.StdIn.readLine().toLowerCase()
-        if(ansatz == "pre retrieval"){
-        val candidates = we_expander.getCandidatesBykNN(input)
-        val result = we_expander.rank(input, candidates)
-        result.foreach{println}}
-        else {
-          val result = we_expander.postRetrieval(input)
-          result.foreach{println}
-        }
+      var query_words = input.split(" ")
+      var candidates = Array[String]()
+      //query = complete
+      if (embeddings.contains(query_words.last)) {
+        candidates = getCandidatesBykNN(query_words)
+
       }
+      //query = incomplete
       else {
-
-        val candidates = we_expander.getCandidatesForIncompleteQuery(input)
-        println(candidates.toSet)
-        val result = we_expander.rank(input.split(" ").slice(0, input.split(" ").length).mkString(" ").trim, candidates)
-        result.foreach{println}
+        candidates = getCandidatesForIncompleteQuery(query_words.last)
+        query_words = query_words.init
       }
-    }
 
+      val x = rank(query_words, candidates)
+      x.foreach{case (word, value) => println(word, value)}
+      x
+    }*/
   }
 }
