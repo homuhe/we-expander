@@ -192,7 +192,7 @@ object we_expander {
     while (true) {
       print("query-expander: ")
 
-      val input = scala.io.StdIn.readLine()
+      val input = scala.io.StdIn.readLine().toLowerCase()
       println("is your query complete?")
       val complete = scala.io.StdIn.readLine()
       if(complete == "complete"){
