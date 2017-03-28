@@ -29,8 +29,6 @@ object we_expander {
       .map(line => (line.split("\t")(1).toLowerCase(), line.split("\t")(6).toLowerCase()))
     val spacePattern = Pattern.compile(delimiter)
     words filter { case (word, docid) => !spacePattern.matcher(word).find() }
-    print("done with preprocessing")
-    words
   }
 
   /**
@@ -136,7 +134,7 @@ object we_expander {
     * @return
     */
   def getCandidatesForIncompleteQuery(Qt: String): Array[String] = {
-    index.keys.filter(_.startsWith(Qt.split(" ").last)).toArray
+    embeddings.keys.filter(_.startsWith(Qt.split(" ").last)).toArray
   }
 
   /**
@@ -147,18 +145,18 @@ object we_expander {
     * @return the best k expansions for that query
     */
   def rank(query: String, candidates: Array[String]): Array[String] = {
-    var similarities = Array[Array[(String, Float)]]()
-    candidates.foreach { candidate =>
-      var wordvec = Array[Float]()
-      if (embeddings.contains(candidate)) {
-        wordvec = embeddings(candidate)
-      }
-      else {
-        wordvec = Array.fill[Float](300)(0)
-      }
-      similarities :+= query.split(" ").map(word => (candidate, cosine_similarity(wordvec, embeddings(word))))
+    //durch die kandidaten iterieren, für jeden kandidaten errechnen wir similarity zwischen ihm und jedem wort
+    //aus dem query.
+    // danach summieren wir diese ähnlichkeiten auf. und normalisieren (rechen mal 1/ wortanzahl im query
+    // val q = query length,
+    var similarities = Array[(String, Float)]()
+    val q = query.split(" ").length
+    for (candidate <- candidates){
+      val canditatevec = embeddings(candidate)
+      val sim = query.split(" ").map(word => cosine_similarity(embeddings(word), canditatevec)).sum
+      similarities:+= (candidate, (1/q)*sim)
     }
-    similarities.flatten.sortBy(_._2).reverse.take(3).map(_._1)
+
   }
 
   //---------------------------post retrieval knn approach----------------------------------------
@@ -183,30 +181,39 @@ object we_expander {
     retained.keys.toArray
   }
 
-
+  def postRetrieval(query:String):Array[String] = {
+    val candidates = getRelevantCandidates(getRelevantDocuments(query))
+    println(candidates.length)
+    rank(query, candidates)
+  }
   //---------------------------------------------load and run the program-----------------------------
   def main(args: Array[String]) {
-    def loadData() = {
-      createInvertedIndex(preprocessing(args(0)))
-      println("inverted index has been created")
-      read_embeddings(args(1))
-      println("embeddings have been read")
-    }
-    loadData()
+    createInvertedIndex(preprocessing(args(0)))
+    println("inverted index has been created")
+    read_embeddings(args(1))
+    println("embeddings have been read")
     while (true) {
       print("query-expander: ")
-
       val input = scala.io.StdIn.readLine().toLowerCase()
       println("is your query complete?")
       val complete = scala.io.StdIn.readLine()
       if(complete == "complete"){
+        println("which ansatz do you want to have? pre retrieval or else")
+        val ansatz = scala.io.StdIn.readLine().toLowerCase()
+        if(ansatz == "pre retrieval"){
         val candidates = we_expander.getCandidatesBykNN(input)
         val result = we_expander.rank(input, candidates)
-        result.foreach{println}
+        result.foreach{println}}
+        else {
+          val result = we_expander.postRetrieval(input)
+          result.foreach{println}
+        }
       }
       else {
+
         val candidates = we_expander.getCandidatesForIncompleteQuery(input)
-        val result = we_expander.rank(input.replace(input.split(" ").last, ""), candidates)
+        println(candidates.toSet)
+        val result = we_expander.rank(input.split(" ").slice(0, input.split(" ").length).mkString(" ").trim, candidates)
         result.foreach{println}
       }
     }
