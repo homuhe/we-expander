@@ -29,6 +29,8 @@ object we_expander {
       .map(line => (line.split("\t")(1).toLowerCase(), line.split("\t")(6).toLowerCase()))
     val spacePattern = Pattern.compile(delimiter)
     words filter { case (word, docid) => !spacePattern.matcher(word).find() }
+    print("done with preprocessing")
+    words
   }
 
   /**
@@ -53,14 +55,17 @@ object we_expander {
     * @param file
     */
   def createInvertedIndex(file: Iterator[(String, String)]): Unit = {
-    file.foreach { case (word, docId) =>
-      if (index.contains(word)) {
-        val doclist = index(word)
-        val newvalue = doclist + Integer.parseInt(docId)
-        index.update(word, newvalue)
-      }
-      else {
-        index.put(word, Set(Integer.parseInt(docId)))
+    while(file.hasNext) {
+      file.next() match {
+        case (word, docId) =>
+          val docidasint = Integer.parseInt(docId)
+          if (index.contains(word)) {
+            val newvalue = index(word) + docidasint
+            index.update(word, newvalue)
+          }
+          else {
+            index.put(word, Set(docidasint))
+          }
       }
     }
   }
