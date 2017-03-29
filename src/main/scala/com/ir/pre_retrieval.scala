@@ -1,7 +1,5 @@
 package com.ir
-import scala.collection.mutable
 import scala.io.Source
-import java.util.regex.Pattern
 
 /**
   * Created by neele, holger on 26.03.17.
@@ -40,10 +38,11 @@ trait vectorFunctions{
     dotproduct(vec1, vec2) / (L2Norm(vec1) * L2Norm(vec2))
   }
 }
-object we_expander extends vectorFunctions{
+
+class embeddingSpace extends vectorFunctions{
   //------------------------------------reading and loading the corpus, the embeddings, the inverted index------------------------
   var embeddings = Map[String, Array[Float]]()
-  val k = 20
+  val k = 10
 
   /**
     * reads a file that contains word embeddings
@@ -52,8 +51,8 @@ object we_expander extends vectorFunctions{
     *              separated by whitespace
     * @return
     */
-  def read_embeddings(input: String): Map[String, Array[Float]] = {
-     Source.fromFile(input).getLines()
+  def read_embeddings(input: String):Map[String, Array[Float]]= {
+    Source.fromFile(input).getLines()
       .map(el => (el.split(" ")(0).toLowerCase(), el.split(" ")
         .tail
         .map(_.toFloat))).toMap
@@ -61,8 +60,7 @@ object we_expander extends vectorFunctions{
 
 
 
-
-  //-----------------------------------pre-retrieval knn based approach-------------------------------------------
+  //-----------------------------------knn methods-------------------------------------------
 
 
   //if the query is complete use this method to extract candidates---
@@ -72,32 +70,19 @@ object we_expander extends vectorFunctions{
     * @param input
     * @return
     */
-  def getCandidatesBykNN(input: Array[String]): Array[(String, Float)] = {
+  def getCandidatesBykNN(input: Array[String], wordembeddings:Map[String, Array[Float]]): Array[(String, Float)] = {
     val query_as_vector = input.map(word => (word, embeddings(word)))
-
-    val similarites = Array.ofDim[Array[(String, Float)]](embeddings.size)
+    val similarites = Array.ofDim[Array[(String, Float)]](wordembeddings.size)
     var i = 0
 
-    for ((embedding, vec) <- embeddings) {
+    for ((embedding, vec) <- wordembeddings) {
       similarites(i) = query_as_vector.map({case
                       (queryword, queryvec) => (embedding, cosine_similarity(vec, queryvec))})
       i+=1
     }
     //similarities.sortWith(_._2>_._2).take(k)
-    similarites.flatten.sortWith(_._2 > _._2).take(k)
+    similarites.flatten.filter(_._2<0.86).sortWith(_._2 > _._2).take(k)
     }
-
-
-  //if the query is incomplete use this method to extract candidates
-  /**
-    * returns all words, that start with the incomplete beginning of the last word of a query
-    *
-    * @param Qt
-    * @return
-    */
-  def getCandidatesForIncompleteQuery(Qt: String): Array[String] = {
-    embeddings.keys.filter(_.startsWith(Qt.split(" ").last)).toArray
-  }
 
   /**
     * calculates the similarity between each word of a query and each candidate that was suggested for that query
@@ -121,31 +106,49 @@ object we_expander extends vectorFunctions{
     similarities.sortWith(_._2>_._2).take(k)
   }
 
+
+}
+object pre_retrieval extends embeddingSpace {
+
+  /**
+    * returns all words, that start with the incomplete beginning of the last word of a query
+    * @param Qt
+    * @return
+    */
+  def getCandidatesForIncompleteQuery(Qt: String): Array[String] = {
+    embeddings.keys.filter(_.startsWith(Qt.split(" ").last)).toArray
+  }
+  def getCandidatesForCompleteQuery(query:Array[String]):Array[String] = {
+    getCandidatesBykNN(query, embeddings).map(_._1)
+  }
+  def pre_retrieval(input: Array[String]): Array[(String, Float)] ={
+    var candidates = Array[String]()
+    var query_words = input
+    //query = complete
+    if (embeddings.contains(input.last)) {
+      candidates = getCandidatesForCompleteQuery(input)
+    }
+    //query = incomplete
+    else {
+      candidates = getCandidatesForIncompleteQuery(input.last)
+      query_words = query_words.init
+    }
+    rank(query_words, candidates)
+  }
+
   //---------------------------------------------load and run the program-----------------------------
   def main(args: Array[String]) {
-
-    //createInvertedIndex(preprocessing(args(0)))
-
     embeddings = read_embeddings(args(0))
+    print("embeddings have been read\n")
     while (true) {
       println("please write query")
       val input = scala.io.StdIn.readLine().toLowerCase()
       var query_words = input.split(" ")
-      var candidates = Array[String]()
-      //query = complete
-      if (embeddings.contains(query_words.last)) {
-        candidates = getCandidatesBykNN(query_words).map(_._1)
-
+      val result = pre_retrieval(query_words)
+      result.foreach{case (word, value) =>
+      print(word, value)
+          print("\n")
       }
-      //query = incomplete
-      else {
-        candidates = getCandidatesForIncompleteQuery(query_words.last)
-        query_words = query_words.init
-      }
-
-      val x = rank(query_words, candidates)
-      x.foreach{case (word, value) => println(word, value)}
-      x
     }
   }
 }
