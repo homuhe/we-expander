@@ -52,8 +52,11 @@ class embeddingSpace extends vectorFunctions{
     * @return
     */
   def read_embeddings(input: String):Map[String, Array[Float]]= {
-    Source.fromFile(input).getLines()
-      .map(el => (el.split(" ")(0).toLowerCase(), el.split(" ")
+    val words = Source.fromFile(input).getLines()
+      words
+      .filter(_.split(" ")(0).length > 1)
+      .map(el =>
+        (el.split(" ")(0).toLowerCase(), el.split(" ")
         .tail
         .map(_.toFloat))).toMap
   }
