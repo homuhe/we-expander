@@ -52,8 +52,11 @@ class embeddingSpace extends vectorFunctions{
     * @return
     */
   def read_embeddings(input: String):Map[String, Array[Float]]= {
-    Source.fromFile(input).getLines()
-      .map(el => (el.split(" ")(0).toLowerCase(), el.split(" ")
+    val words = Source.fromFile(input).getLines()
+      words
+      .filter(_.split(" ")(0).length > 1)
+      .map(el =>
+        (el.split(" ")(0).toLowerCase(), el.split(" ")
         .tail
         .map(_.toFloat))).toMap
   }
@@ -143,7 +146,7 @@ object pre_retrieval extends embeddingSpace {
     while (true) {
       println("please write query")
       val input = scala.io.StdIn.readLine().toLowerCase()
-      var query_words = input.split(" ")
+      val query_words = input.split(" ")
       val result = pre_retrieval(query_words)
       result.foreach{case (word, value) =>
       print(word, value)
