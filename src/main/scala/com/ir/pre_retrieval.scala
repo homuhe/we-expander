@@ -10,15 +10,13 @@ trait vectorFunctions{
   //-------------------------------vector calculation methods-------------------------------------------------
   /**
     * calculates the L2 norm of a vector
-    *
-    * @param vector
+    * @param vector as an Array of floating point numbers
     * @return the norm as a floating number
     */
   def L2Norm(vector: Array[Float]): Float = Math.sqrt(dotproduct(vector, vector)).toFloat
 
   /**
     * calculates the dotproduct of 2 vectors
-    *
     * @param vec1
     * @param vec2
     * @return the dotproduct as a floating number
@@ -29,7 +27,6 @@ trait vectorFunctions{
 
   /**
     * calculates the similarity of two vectors by using cosine similiarity
-    *
     * @param vec1
     * @param vec2
     * @return
@@ -39,17 +36,23 @@ trait vectorFunctions{
   }
 }
 
+/**
+  * This class creates a vector Space for word embeddings, similarity between words can be measured
+  * and similar words to a concrete word can be extracted
+  */
 class embeddingSpace extends vectorFunctions{
   //------------------------------------reading and loading the corpus, the embeddings, the inverted index------------------------
+  /**
+    * The embeddings variable is a map that contains a word as a key and it's word vector as value
+    */
   var embeddings = Map[String, Array[Float]]()
   val k = 10
 
   /**
     * reads a file that contains word embeddings
-    *
     * @param input should be a file that has the word in the first row and the vector in all the other collums
     *              separated by whitespace
-    * @return
+    * @return a Map that maps a word to it's vector
     */
   def read_embeddings(input: String):Map[String, Array[Float]]= {
     val words = Source.fromFile(input).getLines()
@@ -61,17 +64,13 @@ class embeddingSpace extends vectorFunctions{
         .map(_.toFloat))).toMap
   }
 
-
-
   //-----------------------------------knn methods-------------------------------------------
 
-
-  //if the query is complete use this method to extract candidates---
   /**
-    * returns the k best candidates for a query
-    *
-    * @param input
-    * @return
+    * returns the k most similar candidates for a query. It extracts the most similar words for each query
+    * word which forms the set of candidates
+    * @param input the query as an Array of String
+    * @return an Array that contains query expansion candidates and their similarity weight
     */
   def getCandidatesBykNN(input: Array[String], wordembeddings:Map[String, Array[Float]]): Array[(String, Float)] = {
     val query_as_vector = input.map(word => (word, embeddings(word)))
@@ -88,17 +87,14 @@ class embeddingSpace extends vectorFunctions{
     }
 
   /**
-    * calculates the similarity between each word of a query and each candidate that was suggested for that query
-    *
-    * @param query
-    * @param candidates
-    * @return the best k expansions for that query
+    * calculates the similarity between each word of a query and each candidate that was suggested
+    * for that query. The similarites for each candidate are summed up and the candidates with the highest
+    * similarity weights are returned
+    * @param query an Array of String that contains the query words
+    * @param candidates an Array of Strings that contains all possible candidates
+    * @return the best k expansions for that query with their weight
     */
   def rank(query: Array[String], candidates: Array[String]): Array[(String, Float)] = {
-    //durch die kandidaten iterieren, für jeden kandidaten errechnen wir similarity zwischen ihm und jedem wort
-    //aus dem query.
-    // danach summieren wir diese ähnlichkeiten auf. und normalisieren (rechen mal 1/ wortanzahl im query
-    // val q = query length,
     var similarities = Array[(String, Float)]()
     val q = query.length.toFloat
     for (candidate <- candidates){
@@ -115,15 +111,30 @@ object pre_retrieval extends embeddingSpace {
 
   /**
     * returns all words, that start with the incomplete beginning of the last word of a query
-    * @param Qt
-    * @return
+    * @param Qt an inconplete word
+    * @return all words that start with the incomplete word as an Array of Strings
     */
   def getCandidatesForIncompleteQuery(Qt: String): Array[String] = {
     embeddings.keys.filter(_.startsWith(Qt.split(" ").last)).toArray
   }
+
+  /**
+    * If the query doesn't contain any incomplete words, the k nearest neighbours of all
+    * query words are extracted
+    * @param query the query, as an Array of Strings
+    * @return the candidates which are the k nearest neighbours of all query words
+    */
   def getCandidatesForCompleteQuery(query:Array[String]):Array[String] = {
     getCandidatesBykNN(query, embeddings).map(_._1)
   }
+
+  /**
+    * For a given query which my contain only completed words or which may have an incomplete word
+    * as the last word this method extracts possible query expansion candidates and ranks them by
+    * semantic similarity to the query
+    * @param input
+    * @return an Array that contains the most similar words and their similarities to the query
+    */
   def pre_retrieval(input: Array[String]): Array[(String, Float)] ={
     var candidates = Array[String]()
     var query_words = input

@@ -2,21 +2,26 @@ package com.ir
 import java.util.regex.Pattern
 import scala.io.Source
 import scala.collection.mutable
+import java.io.File
+
 /**
   * Created by root on 28.03.17.
+  * In the post retrieval approach, first documents that are relevant to the query are extracted and k nearest
+  * neighbours are only searched in words that are contained in that documents.
+  * The expansion candidates are ranked by similarity to all query words
   */
 object post_retrieval extends embeddingSpace{
 
-  import java.io.File
-
+  /**The inverted index is a HashMap that contains the word as a key and all Document it is found in as a valie
+    * The docs2IDS HashMap contains a Mapping from documentnames to document ids starting by 1
+    */
   var index = mutable.HashMap[String, Set[Int]]()
   val docs2IDs = mutable.HashMap[String, Int]()
   /**
-    * reads in a file in conll format, which contains the word in the first row, the docID in the 6th row
-    * all delimiters are removed, all words are lowercased
-    *
-    * @param file
-    * @return Iterator that contains Tuples with the word and the docID
+    * This method reads in a document in the conll format which contains all words in collum 1.
+    * It makes all words to lower case.
+    * @param file : a path to the location of the corpus file, as a String
+    * @return Iterator that contains all the words of a document
     */
   def preprocessing(file: String): Iterator[String] = {
     val delimiter = "[ \t\n\r,.?!\\-:;()\\[\\]'\"/*#&$]+"
@@ -29,10 +34,10 @@ object post_retrieval extends embeddingSpace{
     val spacePattern = Pattern.compile(delimiter)
     words.filter(el => !spacePattern.matcher(el).find())
   }
-  /**
-    * updates an Inverted Index with the help of a file iterator,
-    * index contains each word of the corpus as a key, and all documents as value
-    * @param file
+  /**This method takes a document Iterator and updates the inverted Index by this document.
+    * It checks if the index already contains a word and adds it to the index if not, otherwise
+    * it just adds the docID to the word.
+    * @param file the Iterator that iterates over all words of a given file
     */
   def updateInvertedIndex(file: Iterator[String], docid: Int): Unit = {
     while(file.hasNext) {
@@ -48,9 +53,9 @@ object post_retrieval extends embeddingSpace{
     }
 
   /**
-    * for a set of files in the conll format this method creates an inverted index with each word
-    * as a key and all the documents that contain the word as a value
-    * @param files
+    * This wrapper method creates an inverted index of a list of files.
+    * It creates the mapping of document name and doc ID parallel.
+    * @param files a list of File object, all files together form the corpus
     */
   def createInvetedIndex(files: Array[File]): Unit = {
 
@@ -58,12 +63,9 @@ object post_retrieval extends embeddingSpace{
 
     for (file <- files) {
       val words = preprocessing(file.toString)
-      val doc = file.toString.split("/").last//.replace(".conll", "").toInt
-
-      //println("Reading doc " + doc + ", new docID: " + doc_id)//(files.indexOf(file)+1))
+      val doc = file.toString.split("/").last
       updateInvertedIndex(words, doc_id)
       docs2IDs.put(doc, doc_id)
-
       doc_id += 1
     }
   }
@@ -81,8 +83,8 @@ object post_retrieval extends embeddingSpace{
     * extracts all words, that are contained in the given list of documents
     * all words returned occur together with at least one query word in the document
     *
-    * @param documents
-    * @return
+    * @param documents a Set of document IDs
+    * @return an Array that contains all words relevant, to the query
     */
   def getRelevantCandidates(documents: Set[Int]): Array[String] = {
     val retained = index filter { case (key, value) => documents.intersect(value).nonEmpty }
