@@ -19,22 +19,60 @@ in 0.33042 0.24995 -0.60874 0.10923 0.036372 0.151 -0.55083 -0.074239 -0.092307 
 
 ## Usage
 ```
-$ ./pre-retrieval arg1")
+$ ./pre-retrieval arg1
       arg1: WORD EMBEDDINGS DIRECTORY\t - directory with word embeddings, separated by whitespace
 ```
 Example run:
 ```
-$ ./we-expander TO EDIT
-> prob-query-expander: president of the uni
-united states 0.091636546
-united states government 0.07686396
-united 0.0367568
-union of police associations 0.02680128
-...
+$ ./pre-retrievals embeddings.txt 
+> pre-retrieval expander: nearest
+connects, 0.7169279
+railhead, 0.70533824
+situated, 0.7036282
+distance, 0.6845015
+connecting, 0.67515314
+located, 0.67337537
+main, 0.66029966
+connect, 0.659874
+closest, 0.65352273
+bus, 0.6500851
 ```
 
+
+## Post-Retrieval:
+In the addition to the processes of the Pre-Retrieval, the Post-Retrieval pre-selects relevant documents in which vector space kNN will be applied.
+
+## Input
+Input is again a directory with one ore more word embedding files. The second obligatory argument to call post-retrieval is a corpus directory whih contains at least one file conll format.
+
+
+## Usage
+```
+$ ./post-retrieval arg1 arg2
+      arg1: WORD EMBEDDINGS DIRECTORY\t - directory with word embeddings, separated by whitespace
+      arg2: CORPUS DIRECTORY\t           - directory with corpus file, file must have conll format
+```
+Example run:
+```
+$ ./post-retrievals embeddings.txt /conll-corpus
+> post-retrieval expander: nearest
+near, 0.6419043
+station, 0.6232734
+train, 0.6178746
+town, 0.6120607
+rail, 0.5961648
+line, 0.5947579
+small, 0.5820411
+where, 0.5563269
+east, 0.55490595
+city, 0.55174905
+```
+
+
+
+
 ## Output
-Output are the query expansion suggestions together with the ranking score.
+Output is for both flavours the query expansion suggestion ranking together with the ranking score.
 
 
 _
