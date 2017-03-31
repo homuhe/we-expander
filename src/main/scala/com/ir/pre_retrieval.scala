@@ -155,22 +155,6 @@ object pre_retrieval extends embeddingSpace {
 
   //---------------------------------------------load and run the program-----------------------------
   def main(args: Array[String]) {
-    if (args.length < 1){
-      help()
-    }
-      embeddings = read_embeddings(args(0))
-    print("embeddings have been read\n")
-    while (true) {
-      println("pre_retrieval_expander: please write query")
-      val input = scala.io.StdIn.readLine().toLowerCase()
-      val query_words = input.split(" ")
-      val result = pre_retrieval(query_words)
-      result.foreach { case (word, value) =>
-        print(word, value)
-        print("\n")
-      }
-    }
-
     /**
       * Helper method
       */
@@ -179,5 +163,21 @@ object pre_retrieval extends embeddingSpace {
       println("\t\targ1: WORD EMBEDDINGS DIRECTORY\t - directory with word embeddings, word end numbers separated by whitespace")
       sys.exit()
     }
+    if (args.length < 1) help()
+    else {
+      embeddings = read_embeddings(args(0))
+      print("embeddings have been read\n")
+      while (true) {
+        println("pre_retrieval_expander: please write query")
+        val input = scala.io.StdIn.readLine().toLowerCase()
+        val query_words = input.split(" ")
+        val result = pre_retrieval(query_words)
+        result.foreach { case (word, value) =>
+          print(word, value)
+          print("\n")
+        }
+      }
+    }
+
   }
 }
