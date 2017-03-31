@@ -2,21 +2,24 @@ package com.ir
 import java.util.regex.Pattern
 import scala.io.Source
 import scala.collection.mutable
+import java.io.File
+
 /**
-  * Created by root on 28.03.17.
+  * Post-Retrieval Semantic Approach:
+  * First, pre-selecting documents that are relevant to query are extracted,
+  * then k nearest neighbours that are contained in that documents are searched.
+  * The expansion candidates are ranked by similarity to all query words.
   */
-object post_retrieval extends embeddingSpace{
+object post_retrieval extends VectorSpace {
 
-  import java.io.File
-
+  //Inverted index aka HashMap that contains the word as a key and posting list as value.
   var index = mutable.HashMap[String, Set[Int]]()
-  val docs2IDs = mutable.HashMap[String, Int]()
+
   /**
-    * reads in a file in conll format, which contains the word in the first row, the docID in the 6th row
-    * all delimiters are removed, all words are lowercased
-    *
-    * @param file
-    * @return Iterator that contains Tuples with the word and the docID
+    * Reads in a document in the conll format which contains all words in collum 1.
+    * Normalizes to lower-case.
+    * @param file : location of the corpus file as a String
+    * @return Iterator that contains all the words of a document
     */
   def preprocessing(file: String): Iterator[String] = {
     val delimiter = "[ \t\n\r,.?!\\-:;()\\[\\]'\"/*#&$]+"
@@ -29,108 +32,103 @@ object post_retrieval extends embeddingSpace{
     val spacePattern = Pattern.compile(delimiter)
     words.filter(el => !spacePattern.matcher(el).find())
   }
-  /**
-    * updates an Inverted Index with the help of a file iterator,
-    * index contains each word of the corpus as a key, and all documents as value
-    * @param file
+
+  /** Takes a document Iterator and updates the inverted index by this document.
+    * @param file Iterator which iterates over all words of a given file
     */
   def updateInvertedIndex(file: Iterator[String], docid: Int): Unit = {
     while(file.hasNext) {
       val word = file.next()
-          if (index.contains(word)) {
-            val newvalue = index(word) + docid
-            index.update(word, newvalue)
-          }
-          else {
-            index.put(word, Set(docid))
-          }
+      if (index.contains(word)) {
+        val newvalue = index(word) + docid
+        index.update(word, newvalue)
       }
+      else index.put(word, Set(docid))
     }
+  }
 
   /**
-    * for a set of files in the conll format this method creates an inverted index with each word
-    * as a key and all the documents that contain the word as a value
-    * @param files
+    * Wrapper method which creates an inverted index of a list of files.
+    * @param files a list of File objects, all files together form the corpus
     */
-  def createInvetedIndex(files: Array[File]): Unit = {
+  def createInvertedIndex(files: Array[File]): Unit = {
 
     var doc_id = 0
 
     for (file <- files) {
       val words = preprocessing(file.toString)
-      val doc = file.toString.split("/").last//.replace(".conll", "").toInt
-
-      //println("Reading doc " + doc + ", new docID: " + doc_id)//(files.indexOf(file)+1))
       updateInvertedIndex(words, doc_id)
-      docs2IDs.put(doc, doc_id)
-
       doc_id += 1
     }
   }
-  //---------------------------post retrieval knn approach----------------------------------------
-  /** extracts all documents that contain any of the query words
+
+  /**
+    * Extracts all words that are contained in the set of docIDs aka posting list of all query tokens.
+    * All words returned occur together with at least one query word in the document
     *
-    * @param query
-    * @return
+    * @param query user query as Array of Strings
+    * @return an Array that contains all words relevant, to the query
     */
-  def getRelevantDocuments(query: Array[String]): Set[Int] = {
-    query.flatMap(word => index.getOrElse(word, Nil)).toSet
+  def getRelevantCandidates(query: Array[String]): Array[String] = {
+    val documents = query.flatMap(word => index.getOrElse(word, Nil)).toSet
+    index.filter({ case (key, value) => documents.intersect(value).nonEmpty }).keys.toArray
   }
 
   /**
-    * extracts all words, that are contained in the given list of documents
-    * all words returned occur together with at least one query word in the document
-    *
-    * @param documents
-    * @return
-    */
-  def getRelevantCandidates(documents: Set[Int]): Array[String] = {
-    val retained = index filter { case (key, value) => documents.intersect(value).nonEmpty }
-    retained.keys.toArray
-  }
-
-  /**
-    * For a given query, this method extracts all relevant documents from the corpus and returns
-    * the k best (in terms of similarity) query expansion candidates
+    * For a given query, this method extracts all relevant documents from the corpus
+    * and returns query expansion candidates
     * @param input a query (as an Array of Strings)
-    * @return the k best expansion candidates and with weight
+    * @return expansion candidates
     */
-    def postRetrieval(input:Array[String]):Array[(String, Float)] = {
+    def postRetrieval(input: Array[String]): Array[String] = {
       var candidates = Array[String]()
-      var newquery = input
-      if (embeddings.contains(input.last)){
-        println("your query was complete")
-        candidates = getRelevantCandidates(getRelevantDocuments(input)).filter(embeddings.contains(_))
-        val newembeddings = embeddings.filter({case (word, vec) => candidates.contains(word)})
-        candidates = super.getCandidatesBykNN(input, newembeddings).map(_._1)
-        }
-      else {
-        println("your query was incomplete")
-        candidates = getRelevantCandidates(getRelevantDocuments(input.init)).filter(embeddings.contains(_))
-        candidates = candidates.filter(_.startsWith(input.last))
-        newquery = input.init
+
+      if (embeddings.contains(input.last)) {
+        candidates = getRelevantCandidates(input).filter(embeddings.contains(_))
+        val new_embeddings = embeddings.filter({case (word, vec) => candidates.contains(word)})
+        super.getCandidatesBykNN(input, new_embeddings).map(_._1)
       }
-      super.rank(newquery, candidates)
+      else getRelevantCandidates(input).filter(embeddings.contains(_))
+                                       .filter(_.startsWith(input.last))
     }
-//------------------use to run the program--------------------------------------------------------------------
+
+
   def main(args: Array[String]): Unit = {
-    embeddings = read_embeddings(args(0))
-    println("embeddings have been read")
-    val files = new File(args(1)).listFiles
-    createInvetedIndex(files)
-    println("inverted index has been created")
-    while(true){
-      println("please write query")
-      val input = scala.io.StdIn.readLine().toLowerCase().split(" ")
-      if (input.length == 1) {
-        embeddings.keys.filter(_.startsWith(input(0))).foreach(println(_))
+
+    if (args.length < 2) help()
+    else {
+
+      embeddings = read_embeddings(args(0))
+      println("embeddings have been read!")
+
+      val files = new File(args(1)).listFiles
+      createInvertedIndex(files)
+      println("inverted index has been created!")
+
+      while (true) {
+        print("\npost-retrieval expander: ")
+        val input = scala.io.StdIn.readLine().toLowerCase().split(" ")
+
+        if (input.length == 1 && embeddings.contains(input(0))) {
+          val ranks = super.rank(input, postRetrieval(input))
+          ranks.foreach(rank => println(rank._1 + ", " + rank._2))
+        }
+        else if (embeddings.contains(input(0))) {
+          val ranks = super.rank(input.init, postRetrieval(input))
+          ranks.foreach(rank => println(rank._1 + ", " + rank._2))
+        }
+        else embeddings.keys.filter(_.startsWith(input.last)).take(k).foreach(println)
       }
-      else {
-        val result = postRetrieval(input)
-        result.foreach{case (word, s) => print(word, s)
-        print("\n")}
-      }
+    }
+
+    /**
+      * Helper method
+      */
+    def help(): Unit = {
+      println("Usage: ./post-retrieval arg1 arg2")
+      println("\t\targ1: WORD EMBEDDINGS DIRECTORY\t  - directory with word embeddings, separated by whitespace")
+      println("\t\targ2: CORPUS DIRECTORY\t           - directory with corpus file, file must have conll format")
+      sys.exit()
     }
   }
-
 }
