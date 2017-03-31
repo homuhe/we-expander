@@ -10,15 +10,15 @@ import java.io.File
   * then k nearest neighbours that are contained in that documents are searched.
   * The expansion candidates are ranked by similarity to all query words.
   */
-object post_retrieval extends VectorSpace{
+object post_retrieval extends VectorSpace {
 
   //Inverted index aka HashMap that contains the word as a key and posting list as value.
   var index = mutable.HashMap[String, Set[Int]]()
 
   /**
-    * This method reads in a document in the conll format which contains all words in collum 1.
-    * It makes all words to lower case.
-    * @param file : a path to the location of the corpus file, as a String
+    * Reads in a document in the conll format which contains all words in collum 1.
+    * Normalizes to lower-case.
+    * @param file : location of the corpus file as a String
     * @return Iterator that contains all the words of a document
     */
   def preprocessing(file: String): Iterator[String] = {
@@ -32,10 +32,9 @@ object post_retrieval extends VectorSpace{
     val spacePattern = Pattern.compile(delimiter)
     words.filter(el => !spacePattern.matcher(el).find())
   }
-  /**This method takes a document Iterator and updates the inverted Index by this document.
-    * It checks if the index already contains a word and adds it to the index if not, otherwise
-    * it just adds the docID to the word.
-    * @param file the Iterator that iterates over all words of a given file
+
+  /** Takes a document Iterator and updates the inverted index by this document.
+    * @param file Iterator which iterates over all words of a given file
     */
   def updateInvertedIndex(file: Iterator[String], docid: Int): Unit = {
     while(file.hasNext) {
@@ -51,63 +50,48 @@ object post_retrieval extends VectorSpace{
     }
 
   /**
-    * This wrapper method creates an inverted index of a list of files.
-    * It creates the mapping of document name and doc ID parallel.
-    * @param files a list of File object, all files together form the corpus
+    * Wrapper method which creates an inverted index of a list of files.
+    * @param files a list of File objects, all files together form the corpus
     */
-  def createInvetedIndex(files: Array[File]): Unit = {
+  def createInvertedIndex(files: Array[File]): Unit = {
 
     var doc_id = 0
 
     for (file <- files) {
       val words = preprocessing(file.toString)
-      val doc = file.toString.split("/").last
       updateInvertedIndex(words, doc_id)
       doc_id += 1
     }
   }
 
-
-  /** extracts all documents that contain any of the query words
-    *
-    * @param query
-    * @return
-    */
-  def getRelevantDocuments(query: Array[String]): Set[Int] = {
-    query.flatMap(word => index.getOrElse(word, Nil)).toSet
-  }
-
   /**
-    * extracts all words, that are contained in the given list of documents
-    * all words returned occur together with at least one query word in the document
+    * Extracts all words that are contained in the set of docIDs aka posting list of all query tokens.
+    * All words returned occur together with at least one query word in the document
     *
-    * @param documents a Set of document IDs
+    * @param query user query as Array of Strings
     * @return an Array that contains all words relevant, to the query
     */
-  def getRelevantCandidates(documents: Set[Int]): Array[String] = {
+  def getRelevantCandidates(query: Array[String]): Array[String] = {
+    val documents = query.flatMap(word => index.getOrElse(word, Nil)).toSet
     index.filter({ case (key, value) => documents.intersect(value).nonEmpty }).keys.toArray
   }
 
   /**
-    * For a given query, this method extracts all relevant documents from the corpus and returns
-    * the k best (in terms of similarity) query expansion candidates
+    * For a given query, this method extracts all relevant documents from the corpus
+    * and returns query expansion candidates
     * @param input a query (as an Array of Strings)
-    * @return the k best expansion candidates and with weight
+    * @return expansion candidates
     */
-    def postRetrieval(input: Array[String]): Array[(String, Float)] = {
+    def postRetrieval(input: Array[String]): Array[String] = {
       var candidates = Array[String]()
-      var newquery = input
+
       if (embeddings.contains(input.last)) {
-        candidates = getRelevantCandidates(getRelevantDocuments(input)).filter(embeddings.contains(_))
-        val newembeddings = embeddings.filter({case (word, vec) => candidates.contains(word)})
-        candidates = super.getCandidatesBykNN(input, newembeddings).map(_._1)
+        candidates = getRelevantCandidates(input).filter(embeddings.contains(_))
+        val new_embeddings = embeddings.filter({case (word, vec) => candidates.contains(word)})
+        super.getCandidatesBykNN(input, new_embeddings).map(_._1)
       }
-      else {
-        candidates = getRelevantCandidates(getRelevantDocuments(input.init)).filter(embeddings.contains(_))
-        candidates = candidates.filter(_.startsWith(input.last))
-        newquery = input.init
-      }
-      super.rank(newquery, candidates)
+      else getRelevantCandidates(input).filter(embeddings.contains(_))
+                                                    .filter(_.startsWith(input.last))
     }
 
 
@@ -120,21 +104,17 @@ object post_retrieval extends VectorSpace{
       println("embeddings have been read!")
 
       val files = new File(args(1)).listFiles
-      createInvetedIndex(files)
+      createInvertedIndex(files)
       println("inverted index has been created!")
 
       while (true) {
         print("\npost-retrieval expander: ")
         val input = scala.io.StdIn.readLine().toLowerCase().split(" ")
-        if (input.length == 1) {
-          embeddings.keys.filter(_.startsWith(input(0))).take(10).foreach(println(_))
-        }
-        else {
-          val result = postRetrieval(input)
-          result.foreach { case (word, s) => print(word, s)
-            print("\n")
-          }
-        }
+        var ranks = super.rank(input.init, postRetrieval(input))
+
+        if (input.length == 1) ranks = super.rank(input, postRetrieval(input))
+
+        ranks.foreach(rank => println(rank._1 + ", " + rank._2))
       }
     }
 
@@ -142,8 +122,8 @@ object post_retrieval extends VectorSpace{
       * Helper method
       */
     def help(): Unit = {
-      println("Usage: ./post_retrieval arg1 arg2")
-      println("\t\targ1: WORD EMBEDDINGS DIRECTORY\t  - directory with word embeddings, word + numbers separated by whitespace")
+      println("Usage: ./post-retrieval arg1 arg2")
+      println("\t\targ1: WORD EMBEDDINGS DIRECTORY\t  - directory with word embeddings, separated by whitespace")
       println("\t\targ2: CORPUS DIRECTORY\t           - directory with corpus file, file must have conll format")
       sys.exit()
     }
