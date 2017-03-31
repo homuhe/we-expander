@@ -111,7 +111,6 @@ object post_retrieval extends embeddingSpace{
         candidates = getRelevantCandidates(getRelevantDocuments(input.init)).filter(embeddings.contains(_))
         candidates = candidates.filter(_.startsWith(input.last))
         newquery = input.init
-
       }
       super.rank(newquery, candidates)
     }
@@ -125,9 +124,14 @@ object post_retrieval extends embeddingSpace{
     while(true){
       println("please write query")
       val input = scala.io.StdIn.readLine().toLowerCase().split(" ")
-      val result = postRetrieval(input)
-      result.foreach{case (word, s) => print(word, s)
-      print("\n")}
+      if (input.length == 1) {
+        embeddings.keys.filter(_.startsWith(input(0))).foreach(println(_))
+      }
+      else {
+        val result = postRetrieval(input)
+        result.foreach{case (word, s) => print(word, s)
+        print("\n")}
+      }
     }
   }
 

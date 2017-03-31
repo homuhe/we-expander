@@ -157,7 +157,7 @@ object pre_retrieval extends embeddingSpace {
     while (true) {
       println("please write query")
       val input = scala.io.StdIn.readLine().toLowerCase()
-      var query_words = input.split(" ")
+      val query_words = input.split(" ")
       val result = pre_retrieval(query_words)
       result.foreach{case (word, value) =>
       print(word, value)
