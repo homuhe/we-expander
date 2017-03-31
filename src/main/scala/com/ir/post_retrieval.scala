@@ -110,9 +110,10 @@ object post_retrieval extends VectorSpace {
       while (true) {
         print("\npost-retrieval expander: ")
         val input = scala.io.StdIn.readLine().toLowerCase().split(" ")
-        var ranks = super.rank(input.init, postRetrieval(input))
+        var ranks = Array[(String, Float)]()
 
         if (input.length == 1) ranks = super.rank(input, postRetrieval(input))
+        else ranks = super.rank(input.init, postRetrieval(input))
 
         ranks.foreach(rank => println(rank._1 + ", " + rank._2))
       }
