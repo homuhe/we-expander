@@ -5,18 +5,16 @@ import scala.collection.mutable
 import java.io.File
 
 /**
-  * Created by root on 28.03.17.
-  * In the post retrieval approach, first documents that are relevant to the query are extracted and k nearest
-  * neighbours are only searched in words that are contained in that documents.
-  * The expansion candidates are ranked by similarity to all query words
+  * Post-Retrieval Semantic Approach:
+  * First, pre-selecting documents that are relevant to query are extracted,
+  * then k nearest neighbours that are contained in that documents are searched.
+  * The expansion candidates are ranked by similarity to all query words.
   */
-object post_retrieval extends embeddingSpace{
+object post_retrieval extends VectorSpace{
 
-  /**The inverted index is a HashMap that contains the word as a key and all Document it is found in as a valie
-    * The docs2IDS HashMap contains a Mapping from documentnames to document ids starting by 1
-    */
+  //Inverted index aka HashMap that contains the word as a key and posting list as value.
   var index = mutable.HashMap[String, Set[Int]]()
-  val docs2IDs = mutable.HashMap[String, Int]()
+
   /**
     * This method reads in a document in the conll format which contains all words in collum 1.
     * It makes all words to lower case.
@@ -65,11 +63,11 @@ object post_retrieval extends embeddingSpace{
       val words = preprocessing(file.toString)
       val doc = file.toString.split("/").last
       updateInvertedIndex(words, doc_id)
-      docs2IDs.put(doc, doc_id)
       doc_id += 1
     }
   }
-  //---------------------------post retrieval knn approach----------------------------------------
+
+
   /** extracts all documents that contain any of the query words
     *
     * @param query
@@ -87,8 +85,7 @@ object post_retrieval extends embeddingSpace{
     * @return an Array that contains all words relevant, to the query
     */
   def getRelevantCandidates(documents: Set[Int]): Array[String] = {
-    val retained = index filter { case (key, value) => documents.intersect(value).nonEmpty }
-    retained.keys.toArray
+    index.filter({ case (key, value) => documents.intersect(value).nonEmpty }).keys.toArray
   }
 
   /**
@@ -97,47 +94,40 @@ object post_retrieval extends embeddingSpace{
     * @param input a query (as an Array of Strings)
     * @return the k best expansion candidates and with weight
     */
-    def postRetrieval(input:Array[String]):Array[(String, Float)] = {
+    def postRetrieval(input: Array[String]): Array[(String, Float)] = {
       var candidates = Array[String]()
       var newquery = input
-      if (embeddings.contains(input.last)){
-        println("your query was complete")
+      if (embeddings.contains(input.last)) {
         candidates = getRelevantCandidates(getRelevantDocuments(input)).filter(embeddings.contains(_))
         val newembeddings = embeddings.filter({case (word, vec) => candidates.contains(word)})
         candidates = super.getCandidatesBykNN(input, newembeddings).map(_._1)
-        }
+      }
       else {
-        println("your query was incomplete")
         candidates = getRelevantCandidates(getRelevantDocuments(input.init)).filter(embeddings.contains(_))
         candidates = candidates.filter(_.startsWith(input.last))
         newquery = input.init
       }
       super.rank(newquery, candidates)
     }
-//------------------use to run the program--------------------------------------------------------------------
+
+
   def main(args: Array[String]): Unit = {
 
-    /**
-      * Helper method
-      */
-    def help(): Unit = {
-      println("Usage: ./post_retrieval arg1 arg2")
-      println("\t\targ1: WORD EMBEDDINGS DIRECTORY\t - directory with word embeddings, word end numbers separated by whitespace")
-      println("\t\targ2: CORPUS  DIRECTORY\t - directory with corpus file, file must have conll format")
-      sys.exit()
-    }
     if (args.length < 2) help()
     else {
+
       embeddings = read_embeddings(args(0))
-      println("embeddings have been read\n")
+      println("embeddings have been read!")
+
       val files = new File(args(1)).listFiles
       createInvetedIndex(files)
-      println("inverted index has been created\n")
+      println("inverted index has been created!")
+
       while (true) {
-        println("\npost retreival expander:")
+        print("\npost-retrieval expander: ")
         val input = scala.io.StdIn.readLine().toLowerCase().split(" ")
         if (input.length == 1) {
-          embeddings.keys.filter(_.startsWith(input(0))).foreach(println(_))
+          embeddings.keys.filter(_.startsWith(input(0))).take(10).foreach(println(_))
         }
         else {
           val result = postRetrieval(input)
@@ -146,7 +136,16 @@ object post_retrieval extends embeddingSpace{
           }
         }
       }
+    }
 
+    /**
+      * Helper method
+      */
+    def help(): Unit = {
+      println("Usage: ./post_retrieval arg1 arg2")
+      println("\t\targ1: WORD EMBEDDINGS DIRECTORY\t  - directory with word embeddings, word + numbers separated by whitespace")
+      println("\t\targ2: CORPUS DIRECTORY\t           - directory with corpus file, file must have conll format")
+      sys.exit()
     }
   }
 }
