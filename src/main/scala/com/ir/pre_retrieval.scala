@@ -168,9 +168,7 @@ object pre_retrieval extends VectorSpace {
         val input = scala.io.StdIn.readLine().toLowerCase()
         val query_words = input.split(" ")
         if (query_words.length == 1 && !embeddings.contains(query_words.last)) {
-          getCandidatesForIncompleteQuery(query_words.last).foreach {
-            println
-          }
+          getCandidatesForIncompleteQuery(query_words.last).foreach(println)
         }
         else {
           val result = pre_retrieval(query_words)
@@ -178,6 +176,7 @@ object pre_retrieval extends VectorSpace {
         }
       }
     }
+
     /**
       * Helper method
       */
