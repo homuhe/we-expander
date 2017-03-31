@@ -39,15 +39,13 @@ object post_retrieval extends VectorSpace {
   def updateInvertedIndex(file: Iterator[String], docid: Int): Unit = {
     while(file.hasNext) {
       val word = file.next()
-          if (index.contains(word)) {
-            val newvalue = index(word) + docid
-            index.update(word, newvalue)
-          }
-          else {
-            index.put(word, Set(docid))
-          }
+      if (index.contains(word)) {
+        val newvalue = index(word) + docid
+        index.update(word, newvalue)
       }
+      else index.put(word, Set(docid))
     }
+  }
 
   /**
     * Wrapper method which creates an inverted index of a list of files.
@@ -91,7 +89,7 @@ object post_retrieval extends VectorSpace {
         super.getCandidatesBykNN(input, new_embeddings).map(_._1)
       }
       else getRelevantCandidates(input).filter(embeddings.contains(_))
-                                                    .filter(_.startsWith(input.last))
+                                       .filter(_.startsWith(input.last))
     }
 
 
@@ -110,11 +108,16 @@ object post_retrieval extends VectorSpace {
       while (true) {
         print("\npost-retrieval expander: ")
         val input = scala.io.StdIn.readLine().toLowerCase().split(" ")
-        var ranks = super.rank(input.init, postRetrieval(input))
 
-        if (input.length == 1) ranks = super.rank(input, postRetrieval(input))
-
-        ranks.foreach(rank => println(rank._1 + ", " + rank._2))
+        if (input.length == 1 && embeddings.contains(input(0))) {
+          val ranks = super.rank(input, postRetrieval(input))
+          ranks.foreach(rank => println(rank._1 + ", " + rank._2))
+        }
+        else if (embeddings.contains(input(0))) {
+          val ranks = super.rank(input.init, postRetrieval(input))
+          ranks.foreach(rank => println(rank._1 + ", " + rank._2))
+        }
+        else embeddings.keys.filter(_.startsWith(input.last)).take(k).foreach(println)
       }
     }
 
