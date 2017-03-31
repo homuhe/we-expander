@@ -84,7 +84,7 @@ class VectorSpace extends vectorFunctions {
                       (queryword, queryvec) => (embedding, cosine_similarity(vec, queryvec))})
       i+=1
     }
-    similarities.flatten.filter(_._2 > 0).sortWith(_._2 > _._2).take(k)
+    similarities.flatten.filter(_._2 > 0.0).filter(_._2 < 0.9).sortWith(_._2 > _._2).take(k)
     }
 
   /**
@@ -164,15 +164,15 @@ object pre_retrieval extends VectorSpace {
       print("embeddings have been read\n")
 
       while (true) {
-        print("\npre retrieval expander: ")
+        print("\npre-retrieval expander: ")
         val input = scala.io.StdIn.readLine().toLowerCase()
         val query_words = input.split(" ")
         if (query_words.length == 1 && !embeddings.contains(query_words.last)) {
-          getCandidatesForIncompleteQuery(query_words.last).foreach(println)
+          getCandidatesForIncompleteQuery(query_words.last).take(k).foreach(println)
         }
         else {
           val result = pre_retrieval(query_words)
-          result.foreach(rank => println(rank._1 + ", " + rank._2))
+          result.take(k).foreach(rank => println(rank._1 + ", " + rank._2))
         }
       }
     }
