@@ -116,6 +116,9 @@ object post_retrieval extends embeddingSpace{
     }
 //------------------use to run the program--------------------------------------------------------------------
   def main(args: Array[String]): Unit = {
+    if (args.length <2){
+      help()
+    }
     embeddings = read_embeddings(args(0))
     println("embeddings have been read")
     val files = new File(args(1)).listFiles
@@ -132,6 +135,15 @@ object post_retrieval extends embeddingSpace{
         result.foreach{case (word, s) => print(word, s)
         print("\n")}
       }
+    }
+    /**
+      * Helper method
+      */
+    def help(): Unit = {
+      println("Usage: ./post_retrieval arg1 arg2")
+      println("\t\targ1: WORD EMBEDDINGS DIRECTORY\t - directory with word embeddings, word end numbers separated by whitespace")
+      println("\t\targ2: CORPUS  DIRECTORY\t - directory with corpus file, file must have conll format")
+      sys.exit()
     }
   }
 

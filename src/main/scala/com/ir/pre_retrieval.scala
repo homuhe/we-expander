@@ -111,6 +111,7 @@ object pre_retrieval extends embeddingSpace {
 
   /**
     * returns all words, that start with the incomplete beginning of the last word of a query
+    *
     * @param Qt an inconplete word
     * @return all words that start with the incomplete word as an Array of Strings
     */
@@ -121,10 +122,11 @@ object pre_retrieval extends embeddingSpace {
   /**
     * If the query doesn't contain any incomplete words, the k nearest neighbours of all
     * query words are extracted
+    *
     * @param query the query, as an Array of Strings
     * @return the candidates which are the k nearest neighbours of all query words
     */
-  def getCandidatesForCompleteQuery(query:Array[String]):Array[String] = {
+  def getCandidatesForCompleteQuery(query: Array[String]): Array[String] = {
     getCandidatesBykNN(query, embeddings).map(_._1)
   }
 
@@ -132,10 +134,11 @@ object pre_retrieval extends embeddingSpace {
     * For a given query which my contain only completed words or which may have an incomplete word
     * as the last word this method extracts possible query expansion candidates and ranks them by
     * semantic similarity to the query
+    *
     * @param input
     * @return an Array that contains the most similar words and their similarities to the query
     */
-  def pre_retrieval(input: Array[String]): Array[(String, Float)] ={
+  def pre_retrieval(input: Array[String]): Array[(String, Float)] = {
     var candidates = Array[String]()
     var query_words = input
     //query = complete
@@ -152,17 +155,29 @@ object pre_retrieval extends embeddingSpace {
 
   //---------------------------------------------load and run the program-----------------------------
   def main(args: Array[String]) {
-    embeddings = read_embeddings(args(0))
+    if (args.length < 1){
+      help()
+    }
+      embeddings = read_embeddings(args(0))
     print("embeddings have been read\n")
     while (true) {
-      println("please write query")
+      println("pre_retrieval_expander: please write query")
       val input = scala.io.StdIn.readLine().toLowerCase()
       val query_words = input.split(" ")
       val result = pre_retrieval(query_words)
-      result.foreach{case (word, value) =>
-      print(word, value)
-          print("\n")
+      result.foreach { case (word, value) =>
+        print(word, value)
+        print("\n")
       }
+    }
+
+    /**
+      * Helper method
+      */
+    def help(): Unit = {
+      println("Usage: ./pre_retrieval arg1")
+      println("\t\targ1: WORD EMBEDDINGS DIRECTORY\t - directory with word embeddings, word end numbers separated by whitespace")
+      sys.exit()
     }
   }
 }
