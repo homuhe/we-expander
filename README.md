@@ -1,24 +1,26 @@
 # we-expander
 Query expansion without query logs - a semantic approach
 
-Expands any given query by TO EDIT [TO EDIT](http://www.tyr.unlu.edu.ar/tallerIR/2013/papers/querysuggestion.pdf)
+Expands any given query by applying kNN and cosine similarity calculations on word embeddings, which follows the approach of [Roy, Dwaipayan, et al. "Using word embeddings for automatic query expansion." (2016).](https://arxiv.org/pdf/1606.07608.pdf)
 
-TO EDIT:
-```
-TO EDIT
-```
 
+
+## Pre-Retrieval:
 
 ## Input
-TO EDIT
-
-
-## Usage
+Input is a directory with one ore more word embedding files. Each line of a file has to start with the word than seperated with withspace followed by the word embedding aka a floating point vector of which each dim is seperated by a whitespace, e.g.:
 ```
 $ ./we-expander TO EDIT
       arg1: CORPUS DIRECTORY - directory with text files, either raw or conll
       opt1: FORMAT           - 'conll', 'raw', default = 'conll'
       opt2: STOPWORDS        - list of stopwords, each line one stopword
+```
+
+
+## Usage
+```
+$ ./pre-retrieval arg1")
+      arg1: WORD EMBEDDINGS DIRECTORY\t - directory with word embeddings, separated by whitespace
 ```
 Example run:
 ```
