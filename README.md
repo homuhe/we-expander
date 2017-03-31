@@ -50,7 +50,7 @@ Input is again a directory with one ore more word embedding files. The second ob
 ```
 $ ./post-retrieval arg1 arg2
       arg1: WORD EMBEDDINGS DIRECTORY\t - directory with word embeddings, separated by whitespace
-      arg2: CORPUS DIRECTORY\t           - directory with corpus file, file must have conll format
+      arg2: CORPUS DIRECTORY\t          - directory with corpus file, file must have conll format
 ```
 Example run:
 ```
