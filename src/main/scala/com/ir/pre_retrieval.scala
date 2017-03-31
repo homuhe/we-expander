@@ -171,10 +171,17 @@ object pre_retrieval extends embeddingSpace {
         println("\npre retrieval expander:")
         val input = scala.io.StdIn.readLine().toLowerCase()
         val query_words = input.split(" ")
-        val result = pre_retrieval(query_words)
-        result.foreach { case (word, value) =>
-          print(word, value)
-          print("\n")
+        if (query_words.length == 1 && !embeddings.contains(query_words.last)) {
+          getCandidatesForIncompleteQuery(query_words.last).foreach {
+            println
+          }
+        }
+        else {
+          val result = pre_retrieval(query_words)
+          result.foreach { case (word, value) =>
+            print(word, value)
+            print("\n")
+          }
         }
       }
     }
