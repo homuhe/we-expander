@@ -127,24 +127,26 @@ object post_retrieval extends embeddingSpace{
       sys.exit()
     }
     if (args.length < 2) help()
-    embeddings = read_embeddings(args(0))
-    println("embeddings have been read")
-    val files = new File(args(1)).listFiles
-    createInvetedIndex(files)
-    println("inverted index has been created")
-    while(true){
-      println("please write query")
-      val input = scala.io.StdIn.readLine().toLowerCase().split(" ")
-      if (input.length == 1) {
-        embeddings.keys.filter(_.startsWith(input(0))).foreach(println(_))
+    else {
+      embeddings = read_embeddings(args(0))
+      println("embeddings have been read\n")
+      val files = new File(args(1)).listFiles
+      createInvetedIndex(files)
+      println("inverted index has been created\n")
+      while (true) {
+        println("\npost retreival expander:")
+        val input = scala.io.StdIn.readLine().toLowerCase().split(" ")
+        if (input.length == 1) {
+          embeddings.keys.filter(_.startsWith(input(0))).foreach(println(_))
+        }
+        else {
+          val result = postRetrieval(input)
+          result.foreach { case (word, s) => print(word, s)
+            print("\n")
+          }
+        }
       }
-      else {
-        val result = postRetrieval(input)
-        result.foreach{case (word, s) => print(word, s)
-        print("\n")}
-      }
+
     }
-
   }
-
 }

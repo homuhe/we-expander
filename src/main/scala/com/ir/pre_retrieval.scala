@@ -168,7 +168,7 @@ object pre_retrieval extends embeddingSpace {
       embeddings = read_embeddings(args(0))
       print("embeddings have been read\n")
       while (true) {
-        println("pre_retrieval_expander: please write query")
+        println("\npre retrieval expander:")
         val input = scala.io.StdIn.readLine().toLowerCase()
         val query_words = input.split(" ")
         val result = pre_retrieval(query_words)
